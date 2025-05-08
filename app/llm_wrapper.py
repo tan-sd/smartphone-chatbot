@@ -1,7 +1,7 @@
 import requests
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2"
+MODEL_NAME = "llama3:latest"
 
 def ask_llm(prompt: str) -> str:
     payload = {
