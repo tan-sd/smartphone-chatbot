@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the database from csv
-df = pd.read_csv('data/smartphone_inventory_sgd.csv')
+df = pd.read_csv('../data/smartphone_inventory_sgd.csv')
 
 # Standardize the column names
 df.columns = [col.strip().lower() for col in df.columns]
@@ -31,8 +31,3 @@ def recommend_phone(budget: float) -> str:
     
     top = filtered.iloc[0]
     return f"I recommend the {top['model']} by {top['brand']} for ${top['price']} — it's currently in stock."
-
-# Test
-print(check_stock("iphone 13"))
-print(get_price("iphone 13"))
-print(recommend_phone(1000))
