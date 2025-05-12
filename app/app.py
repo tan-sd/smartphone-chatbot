@@ -1,42 +1,13 @@
 import streamlit as st
+import time
 from langchain_ollama import OllamaLLM
-from langchain.agents import Tool, initialize_agent
-from langchain.agents.agent_types import AgentType
+from langchain_community.vectorstores import FAISS
+from langchain_ollama import OllamaEmbeddings
 
-from tools import get_price, check_stock, recommend_phone
-
-tools = [
-    Tool(
-        name="GetPrice",
-        func=get_price,
-        description="Use this to get the price of a phone by model name."
-    ),
-    Tool(
-        name="CheckStock",
-        func=check_stock,
-        description="Use this to check if a phone is in stock."
-    ),
-    Tool(
-        name="RecommendPhone",
-        func=lambda x: recommend_phone(float(x)),
-        description="Use this to recommend a phone based on a budget."
-    )
-]
-
-llm = OllamaLLM(
-    model="llama3",
-    temperature=0,
-)
-
-agent = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=False,
-    handle_parsing_errors=True
-)
-
-# st.title("📱 Smartphone Chatbot")
+embedding = OllamaEmbeddings(model="llama3")
+vectorstore = FAISS.load_local("../data/faiss_index", embedding, allow_dangerous_deserialization=True)
+retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
+llm = OllamaLLM(model="llama3", temperature=0)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -45,28 +16,52 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt:= st.chat_input("Ask about stock, price, or get a recommendation:"):
+if prompt := st.chat_input("Ask about stock, price, or get a recommendation..."):
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            result = agent.invoke(prompt)
 
-            tool_output = result["output"] if isinstance(result, dict) else result
+            normalized_prompt = prompt.lower()
+            matched_docs = [
+                doc for doc in vectorstore.docstore._dict.values()
+                if doc.metadata.get("model", "").lower() in normalized_prompt
+            ]
 
-            rephrase_prompt = f"""
-                You are a friendly and helpful tech assistant. 
-                Please turn the following message into a natural, conversational reply suitable for a user. 
-                Avoid saying things like "The final answer is" or "Observation".
-                Add emojis only if it enhances the reply, and keep the tone clear and friendly.
+            docs = matched_docs if matched_docs else retriever.invoke(prompt)
 
-                Original response:
-                {tool_output}
+            # with st.expander("🔍 Retrieved Chunks"):
+            #     for i, doc in enumerate(docs):
+            #         st.markdown(f"**Match {i+1}:**")
+            #         st.code(doc.page_content)
+
+            context = "\n".join([doc.page_content for doc in docs])
+            final_prompt = f"""
+                You are a friendly, helpful and experienced smartphone sales assistant.
+                Use the following context to answer the user's question in a natural, conversational tone.
+                Only use information from the context. If it's not there, say you don't have that information.
+                Use emoji if appropriate.
+
+                Your job:
+                - Suggest phones based on user intent (e.g. budget, power, stock).
+                - Never invent data. Stick to listed models and prices in context.
+                - Present your answer clearly and naturally.
+
+                Context:
+                {context}
+
+                Question:
+                {prompt}
             """
 
-            response = llm.invoke(rephrase_prompt)
-            st.markdown(response)
+            response = llm.invoke(final_prompt)
+
+            display_text = ""
+            assistant_block = st.empty()
+            for char in response:
+                display_text += char
+                assistant_block.markdown(display_text)
+                time.sleep(0.005)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
-
