@@ -4,10 +4,19 @@ from langchain_ollama import OllamaLLM
 from langchain_community.vectorstores import FAISS
 from langchain_ollama import OllamaEmbeddings
 
-embedding = OllamaEmbeddings(model="llama3")
-vectorstore = FAISS.load_local("../data/faiss_index", embedding, allow_dangerous_deserialization=True)
+embedding = OllamaEmbeddings(
+    model="llama3",
+    base_url="http://host.docker.internal:11434"
+)
+
+vectorstore = FAISS.load_local("data/faiss_index", embedding, allow_dangerous_deserialization=True)
 retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
-llm = OllamaLLM(model="llama3", temperature=0)
+
+llm = OllamaLLM(
+    model="llama3",
+    temperature=0,
+    base_url="http://host.docker.internal:11434"
+)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
