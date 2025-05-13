@@ -17,13 +17,20 @@ Before running this project, ensure the following are installed on your **host m
   ```
 ---
 ## 📦 Build and Run
+1. Clone the repository:
+```bash
+git clone https://github.com/tan-sd/smartphone-chatbot.git
+cd smartphone-chatbot
+```
 
-1. Build the Docker image:
+2. Build the Docker image:
 ```bash
 docker build -t smartphone-chatbot .
 ```
 
-2. Run the container:
+3. Run the container:
 ```bash
 docker run -p 8501:8501 smartphone-chatbot
 ```
+
+Navigate to http://localhost:8501 in your browser to begin using the chatbot.
