@@ -18,7 +18,7 @@ for _, row in df.iterrows():
     }
     docs.append(Document(page_content=text, metadata=metadata))
 
-embedding = OllamaEmbeddings(model="llama3")
+embedding = OllamaEmbeddings(model="llama3.2")
 
 vectorstore = FAISS.from_documents(docs, embedding)
 vectorstore.save_local("faiss_index")
