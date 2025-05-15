@@ -5,7 +5,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_ollama import OllamaEmbeddings
 
 embedding = OllamaEmbeddings(
-    model="llama3",
+    model="llama3.2",
     base_url="http://host.docker.internal:11434"
 )
 
@@ -13,7 +13,7 @@ vectorstore = FAISS.load_local("data/faiss_index", embedding, allow_dangerous_de
 retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
 
 llm = OllamaLLM(
-    model="llama3",
+    model="llama3.2",
     temperature=0,
     base_url="http://host.docker.internal:11434"
 )
@@ -49,13 +49,14 @@ if prompt := st.chat_input("Ask about stock, price, or get a recommendation...")
             final_prompt = f"""
                 You are a friendly, helpful and experienced smartphone sales assistant.
                 Use the following context to answer the user's question in a natural, conversational tone.
-                Only use information from the context. If it's not there, say you don't have that information.
-                Use emoji if appropriate.
+                Only use information from the context. If the user asks about a model that is not in the context, clearly state that you do not have information about it. Do not guess or invent details.
+                Feel free to suggest similar available models if appropriate.
+                Use emoji where appropriate to keep a warm tone.
 
                 Your job:
                 - Suggest phones based on user intent (e.g. budget, power, stock).
-                - Never invent data. Stick to listed models and prices in context.
-                - Present your answer clearly and naturally.
+                - If the smartphone is not listed in the data given, NEVER assume or guess prices, stock, or features of the model. Politely tell the user that the information is not available.
+                - Present your answer clearly and naturally, even when declining to answer.
 
                 Context:
                 {context}
